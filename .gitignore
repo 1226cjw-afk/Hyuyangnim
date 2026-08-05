@@ -1,0 +1,8 @@
+# Supabase 연결정보 등 로컬 설정 — 커밋 금지
+.mcp.json
+.env.local
+
+# 로컬 전용 (배포 산출물 아님)
+PROGRESS.md
+scratch/
+tools/edgeprofile/
