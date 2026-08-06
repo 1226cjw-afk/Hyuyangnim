@@ -22,5 +22,77 @@
 <body>
 <header>다음 예약 오픈</header>
 <main id="app">준비 중입니다.</main>
+
+<script>
+// ── OPENDATE:START ── (tests/opendate.test.js 가 이 구간을 추출한다. 경계 주석을 지우지 말 것)
+
+// 시간대는 폰의 로컬 시간(KST)을 그대로 쓴다. 서버가 없어 UTC 변환이 필요 없다.
+function lastDayOfMonth(y, m) {            // m: 0-11
+  return new Date(y, m + 1, 0).getDate();
+}
+
+function parseHM(t) {
+  const p = String(t || '09:00').split(':');
+  return [Number(p[0]) || 0, Number(p[1]) || 0];
+}
+
+function nextMonthlyOpen(rule, now) {
+  const [hh, mi] = parseHM(rule.open_time);
+  for (let i = 0; i < 3; i++) {
+    const y = now.getFullYear(), m = now.getMonth() + i;
+    // ⚠️ 말일 클램프 — '매월 31일' 이 2월을 만나면 말일로 당긴다.
+    //    안 하면 그 달 표시가 조용히 사라진다 (설계서 §4.3).
+    const day = Math.min(rule.day_of_month, lastDayOfMonth(y, m));
+    const d = new Date(y, m, day, hh, mi, 0, 0);
+    if (d >= now) return d;
+  }
+  return null;
+}
+
+function nextWeeklyOpen(rule, now) {
+  const [hh, mi] = parseHM(rule.open_time);
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hh, mi, 0, 0);
+    if (d.getDay() === rule.weekday && d >= now) return d;
+  }
+  return null;
+}
+
+// 규칙이 없거나 사람이 검토하지 않았으면(active=false) 날짜를 내주지 않는다.
+// 옛 규칙으로 날짜를 계속 보여주는 것이 가장 나쁜 실패다 (설계서 §3.4).
+function nextOpen(rule, now) {
+  if (!rule || rule.active === false) return null;
+  if (rule.freq === 'monthly') return rule.day_of_month ? nextMonthlyOpen(rule, now) : null;
+  if (rule.freq === 'weekly')  return rule.weekday != null ? nextWeeklyOpen(rule, now) : null;
+  return null;
+}
+
+function dayDiff(from, to) {               // 자정 기준 날짜 차
+  const a = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const b = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.round((b - a) / 86400000);
+}
+
+function clockText(d) {
+  const h = d.getHours(), mi = d.getMinutes();
+  const label = h === 0 ? '밤' : h < 12 ? '오전' : '오후';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return label + ' ' + h12 + '시' + (mi ? ' ' + mi + '분' : '');
+}
+
+// 부모님이 읽으실 문구. 'D-3' 같은 표기를 쓰지 않는다 (설계서 §5.1).
+function humanWhen(open, now) {
+  const n = dayDiff(now, open);
+  if (n <= 0) return '오늘 ' + clockText(open) + '!';
+  if (n === 1) return '내일 ' + clockText(open);
+  return n + '일 뒤';
+}
+
+function formatOpen(d) {
+  const w = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+  return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + w + ') ' + clockText(d);
+}
+// ── OPENDATE:END ──
+</script>
 </body>
 </html>
