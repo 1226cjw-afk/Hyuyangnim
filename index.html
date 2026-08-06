@@ -7,21 +7,70 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#1b5e20">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root { --fg:#111; --bg:#fff; --green:#1b5e20; }
+  :root { --fg:#111; --bg:#fff; --green:#1b5e20; --muted:#666; --line:#ddd; --warn:#b00020; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin:0; background:var(--bg); color:var(--fg);
     font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
-    font-size:18px; line-height:1.5;
+    font-size:19px; line-height:1.5;
   }
-  header { background:var(--green); color:#fff; padding:16px; font-size:20px; font-weight:700; }
-  main { padding:16px; }
+  header { background:var(--green); color:#fff; padding:18px 16px; font-size:21px; font-weight:700; }
+  main { padding:12px 16px 96px; max-width:640px; margin:0 auto; }
+
+  /* 노안 전제 — 본문 19px, 날짜 26px, 터치 타깃 56px 이상, 고대비 */
+  .card { border:2px solid var(--line); border-radius:14px; padding:16px; margin:14px 0; }
+  .card .name { font-size:21px; font-weight:700; margin-bottom:6px; }
+  .card .when { font-size:26px; font-weight:800; line-height:1.3; color:var(--green); }
+  .card .sub  { font-size:18px; color:var(--muted); margin-top:4px; }
+  .card .pending { font-size:22px; font-weight:700; color:var(--muted); }
+
+  .row { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .btn {
+    min-height:56px; padding:0 20px; border-radius:12px; border:0;
+    font-size:19px; font-weight:700; display:inline-flex; align-items:center;
+    justify-content:center; text-decoration:none; cursor:pointer;
+  }
+  /* 주 버튼은 크고 진하게, '빼기'는 회색 아웃라인 — 오터치 방지를 확인창이 아니라 시각 위계로 한다 */
+  .btn-primary { background:var(--green); color:#fff; flex:1 1 auto; }
+  .btn-ghost   { background:#fff; color:var(--muted); border:2px solid var(--line); }
+  .btn-add {
+    width:100%; min-height:64px; font-size:21px; margin-top:20px;
+    background:#fff; color:var(--green); border:3px dashed var(--green);
+  }
+
+  /* 추가 화면 — 지역·시군·휴양림 3단 드릴다운 */
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid button {
+    min-height:72px; font-size:20px; font-weight:700; border-radius:14px;
+    border:2px solid var(--line); background:#fff; color:var(--fg); padding:8px; cursor:pointer;
+  }
+  .pick { display:block; width:100%; text-align:left; min-height:64px; font-size:20px;
+    border-radius:14px; border:2px solid var(--line); background:#fff; color:var(--fg);
+    padding:12px 16px; margin:10px 0; cursor:pointer; }
+  .pick.dim  { color:var(--muted); }         /* 규칙 없는 곳 — 아래로, 회색으로 */
+  .pick.on   { border-color:var(--green); color:var(--green); font-weight:800; }
+  .back { min-height:56px; font-size:19px; background:none; border:0; color:var(--green);
+    font-weight:700; padding:0 4px; cursor:pointer; }
+  .step-title { font-size:23px; font-weight:800; margin:8px 0 16px; }
+
+  #toast {
+    position:fixed; left:16px; right:16px; bottom:20px; max-width:608px; margin:0 auto;
+    background:#222; color:#fff; padding:16px; border-radius:12px; font-size:19px;
+    display:none; align-items:center; justify-content:space-between; gap:12px;
+  }
+  /* 되돌리기 버튼은 절대 줄어들거나 줄바꿈되지 않게 — 실수 삭제를 되돌릴 유일한 길이다.
+     nowrap/flex-shrink:0 을 빼면 긴 휴양림 이름에 밀려 글자가 두 줄로 쪼개진다 (2026-08-06 실측) */
+  #toast button { min-height:48px; padding:0 18px; font-size:19px; font-weight:700;
+    border:0; border-radius:10px; background:#fff; color:#111;
+    white-space:nowrap; flex:0 0 auto; }
 </style>
 </head>
 <body>
 <header>다음 예약 오픈</header>
 <main id="app">준비 중입니다.</main>
+<div id="toast"><span id="toast-msg"></span><button id="toast-undo">되돌리기</button></div>
 
 <script>
 // ── OPENDATE:START ── (tests/opendate.test.js 가 이 구간을 추출한다. 경계 주석을 지우지 말 것)
@@ -93,6 +142,219 @@ function formatOpen(d) {
   return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + w + ') ' + clockText(d);
 }
 // ── OPENDATE:END ──
+
+// ⚠️ Supabase 연결정보. anon key 는 공개 키다(RLS 를 열어두었다 — Our_Budget 과 동일).
+//    service_role key 는 절대 여기 넣지 않는다.
+//    아직 프로젝트를 안 만들었으면 이 두 줄만 바꾸면 앱이 살아난다.
+const SUPABASE_URL  = "<URL>";
+const SUPABASE_ANON = "<ANON>";
+const CONFIGURED = /^https:\/\//.test(SUPABASE_URL);
+
+let sb = null;
+const state = { forests: [], rules: {}, favorites: [] };
+
+async function loadAll() {
+  const [f, r, v] = await Promise.all([
+    sb.from('forests').select('id,name,gubun,region,sigungu,hmpg_id'),
+    sb.from('rules').select('forest_id,kind,freq,day_of_month,weekday,open_time,note,active').eq('active', true),
+    sb.from('favorites').select('forest_id'),
+  ]);
+  if (f.error || r.error || v.error) throw (f.error || r.error || v.error);
+  state.forests = f.data || [];
+  // ⚠️ active=true 만 가져온다. 검토 안 된 후보가 화면에 닿을 경로 자체를 없앤다.
+  state.rules = {};
+  for (const x of (r.data || [])) state.rules[x.forest_id] = x;   // 휴양림당 활성 규칙 1개를 가정
+  state.favorites = (v.data || []).map(x => x.forest_id);
+}
+
+// hmpgId 만 바꾸면 전 휴양림에 통용된다 (2026-08-03 실측).
+function deepLink(forest, rule) {
+  if (!forest.hmpg_id) {
+    // ID 를 아직 못 구한 곳은 숲나들e 목록으로 보낸다. 막다른 길을 만들지 않는다.
+    return 'https://www.foresttrip.go.kr/pot/is/fs/selectFcltSrchView.do?hmpgId=FRIP&menuId=002001';
+  }
+  if (rule && rule.kind === 'lottery') {
+    return 'https://www.foresttrip.go.kr/rep/drlts/month/drltsMain.do?hmpgId=' + forest.hmpg_id + '&menuId=001003002';
+  }
+  return 'https://www.foresttrip.go.kr/rep/or/sssn/fcfsRsrvtPssblGoodsDetls.do?hmpgId=' + forest.hmpg_id + '&menuId=001001';
+}
+
+// 가까운 오픈일 순. '확인 중'(날짜 없음)은 맨 아래 (설계서 §5.1).
+function favoriteCards(now) {
+  return state.favorites
+    .map(id => {
+      const forest = state.forests.find(f => f.id === id);
+      if (!forest) return null;
+      const rule = state.rules[id] || null;
+      return { forest, rule, open: nextOpen(rule, now) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.open && b.open) return a.open - b.open;
+      if (a.open) return -1;
+      if (b.open) return 1;
+      return a.forest.name.localeCompare(b.forest.name, 'ko');
+    });
+}
+
+const el = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderHome() {
+  const now = new Date();
+  const cards = favoriteCards(now);
+
+  if (!cards.length) {
+    el.innerHTML = `<p style="font-size:20px">아직 고른 휴양림이 없어요.</p>
+      <button class="btn btn-add" onclick="renderAdd()">＋ 휴양림 추가하기</button>`;
+    return;
+  }
+
+  el.innerHTML = cards.map(({ forest, rule, open }) => {
+    const kindWord = rule && rule.kind === 'lottery' ? '추첨' : '선착순';
+    const body = open
+      ? `<div class="when">${esc(formatOpen(open))}</div>
+         <div class="sub">${esc(humanWhen(open, now))} · ${kindWord}</div>`
+      // '오픈일 확인 중'은 예외가 아니라 1급 상태다 (설계서 §8). 경고 문구를 덧붙이지 않는다.
+      : `<div class="pending">오픈일 확인 중</div>`;
+    return `<div class="card">
+      <div class="name">${esc(forest.name)}</div>
+      ${body}
+      <div class="row">
+        <a class="btn btn-primary" href="${esc(deepLink(forest, rule))}" target="_blank" rel="noopener">
+          ${open ? '예약하러 가기' : '예약 사이트'}</a>
+        <button class="btn btn-ghost" onclick="removeFavorite(${forest.id})">빼기</button>
+      </div>
+    </div>`;
+  }).join('') +
+  `<button class="btn btn-add" onclick="renderAdd()">＋ 휴양림 추가하기</button>`;
+}
+
+let toastTimer = null;
+
+// 확인창을 겹겹이 두지 않는다. 즉시 삭제하고 8초 되돌리기를 준다 (설계서 §5.1).
+function showToast(msg, undoFn) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  const btn = document.getElementById('toast-undo');
+  btn.onclick = async () => { hideToast(); await undoFn(); };
+  t.style.display = 'flex';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 8000);
+}
+function hideToast() {
+  clearTimeout(toastTimer);
+  document.getElementById('toast').style.display = 'none';
+}
+
+async function removeFavorite(forestId) {
+  const forest = state.forests.find(f => f.id === forestId);
+  state.favorites = state.favorites.filter(id => id !== forestId);
+  renderHome();
+  await sb.from('favorites').delete().eq('forest_id', forestId);
+  showToast((forest ? forest.name : '휴양림') + ' 을(를) 뺐어요', async () => {
+    await sb.from('favorites').insert({ forest_id: forestId });
+    await loadAll();
+    renderHome();
+  });
+}
+
+// 지역 단위는 숲나들e 표기를 그대로 쓴다 (서울인천경기 등 9개).
+// 시군→도 매핑을 손으로 만들지 않기 위한 선택 — 부모님께는 오히려 익숙한 묶음이다.
+const REGION_LABEL = {
+  '서울인천경기': '서울·인천·경기', '강원': '강원', '충북': '충북',
+  '대전충남': '대전·충남', '전북': '전북', '전남광주': '광주·전남',
+  '대구경북': '대구·경북', '부산경남': '부산·경남', '제주': '제주',
+};
+
+let addStep = { region: null, sigungu: null };
+
+// ⚠️ 화면을 새로 만들지 않는다. 같은 #app 안에서 단계만 바뀐다 (설계서 §5.2).
+function renderAdd() {
+  addStep = { region: null, sigungu: null };
+  renderAddStep();
+}
+
+function renderAddStep() {
+  const { region, sigungu } = addStep;
+
+  if (!region) {
+    const regions = [...new Set(state.forests.map(f => f.region))]
+      .sort((a, b) => Object.keys(REGION_LABEL).indexOf(a) - Object.keys(REGION_LABEL).indexOf(b));
+    el.innerHTML =
+      `<button class="back" onclick="renderHome()">← 뒤로</button>
+       <div class="step-title">어디에 있나요?</div>
+       <div class="grid">${regions.map(r =>
+         `<button onclick="pickRegion('${esc(r)}')">${esc(REGION_LABEL[r] || r)}</button>`).join('')}</div>`;
+    return;
+  }
+
+  if (!sigungu) {
+    const list = [...new Set(state.forests.filter(f => f.region === region).map(f => f.sigungu))]
+      .sort((a, b) => a.localeCompare(b, 'ko'));
+    el.innerHTML =
+      `<button class="back" onclick="renderAdd()">← 뒤로</button>
+       <div class="step-title">${esc(REGION_LABEL[region] || region)} 어디?</div>
+       <div class="grid">${list.map(s =>
+         `<button onclick="pickSigungu('${esc(s)}')">${esc(s)}</button>`).join('')}</div>`;
+    return;
+  }
+
+  // 3단: 규칙이 확인된 곳을 위에, '확인 중'은 회색으로 아래에 (설계서 §5.2)
+  const items = state.forests
+    .filter(f => f.region === region && f.sigungu === sigungu)
+    .map(f => ({ f, has: !!state.rules[f.id], on: state.favorites.includes(f.id) }))
+    .sort((a, b) => (b.has - a.has) || a.f.name.localeCompare(b.f.name, 'ko'));
+
+  el.innerHTML =
+    `<button class="back" onclick="pickRegion('${esc(region)}')">← 뒤로</button>
+     <div class="step-title">${esc(sigungu)}</div>` +
+    items.map(({ f, has, on }) =>
+      `<button class="pick ${has ? '' : 'dim'} ${on ? 'on' : ''}" onclick="toggleFavorite(${f.id})">
+         ${on ? '✓ ' : ''}${esc(f.name)}${has ? '' : '<br><span style="font-size:17px">오픈일 확인 중</span>'}
+       </button>`).join('');
+}
+
+function pickRegion(r)  { addStep = { region: r, sigungu: null }; renderAddStep(); }
+function pickSigungu(s) { addStep.sigungu = s; renderAddStep(); }
+
+async function toggleFavorite(forestId) {
+  const on = state.favorites.includes(forestId);
+  const forest = state.forests.find(f => f.id === forestId);
+
+  if (on) {
+    state.favorites = state.favorites.filter(id => id !== forestId);
+    renderAddStep();
+    await sb.from('favorites').delete().eq('forest_id', forestId);
+    showToast(forest.name + ' 을(를) 뺐어요', async () => {
+      await sb.from('favorites').insert({ forest_id: forestId });
+      await loadAll(); renderAddStep();
+    });
+  } else {
+    state.favorites.push(forestId);
+    renderAddStep();
+    await sb.from('favorites').insert({ forest_id: forestId });
+    showToast(forest.name + ' 을(를) 담았어요', async () => {
+      await sb.from('favorites').delete().eq('forest_id', forestId);
+      await loadAll(); renderAddStep();
+    });
+  }
+}
+
+// CDN 로드 실패 시 흰 화면 대신 알아볼 수 있는 안내를 띄운다 (Our_Budget 선례).
+// ⚠️ 당겨서 새로고침 같은 제스처를 넣지 않는다. 앱을 열 때마다 자동 로드된다 (설계서 §5.1).
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    if (!CONFIGURED) throw new Error('연결 준비 중입니다. 곧 열립니다.');
+    if (!window.supabase) throw new Error('연결 준비에 실패했어요. 잠시 뒤 다시 열어주세요.');
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    await loadAll();
+    renderHome();
+  } catch (e) {
+    el.innerHTML = `<div class="card"><div class="pending">지금은 열 수 없어요</div>
+      <div class="sub">${esc(e.message || e)}</div></div>`;
+  }
+});
 </script>
 </body>
 </html>
