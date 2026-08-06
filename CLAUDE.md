@@ -4,18 +4,33 @@
 국내 자연휴양림(국립 + 지자체 운영)의 **예약 오픈 일정**을 한곳에 모아 보여주는 모바일 웹.
 도별/지역별로 휴양림을 찾고, 즐겨찾기한 곳의 다음 오픈일과 접수 링크를 놓치지 않게 한다.
 
-## 현황 (2026-08-05) — 구현 진행 중 (계획서 Task 4/10 완료)
+## 현황 (2026-08-06) — 구현 진행 중 (계획서 Task 8/10 완료, **Supabase 대기 중**)
 
 **배포 URL: https://hyuyangnim.1226cjw.workers.dev** (Cloudflare Workers, `main` 푸시 시 자동배포)
 **GitHub: https://github.com/1226cjw-afk/Hyuyangnim** (public)
 
 - **구현 계획서: `docs/superpowers/plans/2026-08-04-hyuyangnim-implementation.md`** ← 새 세션은 이것부터
   (10개 태스크. superpowers `subagent-driven-development` 또는 `executing-plans` 로 실행)
+- 세션별 진척·막힌 지점은 `PROGRESS.md` (git 미추적)
 - 설계 근거는 `docs/superpowers/specs/2026-08-03-hyuyangnim-design.md`
 - 결정 경위·폐기된 안은 `BRAINSTORM.md`
 - ⚠️ **푸시 알림은 만들지 않는다.** 세션 중반에 웹푸시(PWA)로 정했다가 **최종적으로 뒤집혔다**
   (사용자: "알림을 따로 만들지 말고 웹페이지 접속하면 볼 수 있게만"). 서비스워커·푸시 구독·
   발송 크론·VAPID·`.ics` 전부 폐기. 자세한 경위는 `BRAINSTORM.md` Q2
+
+### 🚧 지금 막혀 있는 것 — **사용자만 할 수 있다** (2026-08-06)
+
+앱 코드는 다 됐고 **Supabase 프로젝트가 없어서 아무것도 못 읽는다.** 필요한 것:
+
+1. supabase.com → New project (이름 `Hyuyangnim`, 리전 Northeast Asia (Seoul))
+2. Project Settings → API 의 **Project URL** + **anon public key**
+   → `index.html` 의 `SUPABASE_URL`·`SUPABASE_ANON` **두 줄**만 바꾸면 앱이 살아난다
+   ⚠️ **service_role key 는 받지도 쓰지도 않는다.** anon key 는 공개 키라 커밋해도 된다(RLS 개방)
+3. SQL Editor 에 `schema.sql` 실행 → 이어서 `data/seed.sql` 실행
+   (forests 185 · rules 185 중 active 4 · favorites 4)
+
+그전까지 화면엔 `지금은 열 수 없어요 / 연결 준비 중입니다` 가 뜬다 — `CONFIGURED` 가드다.
+흰 화면을 만들지 않기 위한 것이니 지우지 말 것.
 
 ### 완료 / 남은 일
 | Task | 상태 |
@@ -24,12 +39,22 @@
 | 2 통합표 스크래퍼 + 파서 (`data/policy-table.json` 185행) | ✅ 완료 |
 | 3 축령산 충돌 판정 (`data/rules-verified.json`) | ✅ 완료 — 사용자 판정 `매월 1일` |
 | 4 `hmpgId` 매핑 (`data/hmpgid-map.json` 186/186) | ✅ 완료 |
-| 5 Supabase 스키마 + 시드 | ⬜ **다음** — 사용자가 Supabase 프로젝트를 만들어야 시작 |
-| 6 다음 오픈일 계산 (TDD) · 7 홈 화면 · 8 3단 드릴다운 | ⬜ |
-| 9 주 1회 정책 감시 `check.js` · 10 부모님 폰 등록 | ⬜ |
+| 5 Supabase 스키마 + 시드 | 🟡 `schema.sql`·`data/seed.sql` 생성 완료 — **투입만 남음(위 🚧)** |
+| 6 다음 오픈일 계산 (TDD) | ✅ 완료 — 테스트 13개 |
+| 7 홈 화면 · 8 3단 드릴다운 | ✅ 코드 완료 — **실기기 확인만 남음** |
+| 9 주 1회 정책 감시 `check.js` | ⬜ **다음** — Supabase 접속이 있어야 검증까지 된다 |
+| 10 부모님 폰 등록 | ⬜ |
 
-- 테스트: `node tests/run.js` (현재 parse-policy 7개 통과)
-- 스크립트: `tools/scrape-policy.js`(통합표) · `tools/scrape-hmpgid.js`(이름↔ID) · `tools/make-icons.js`
+- 테스트: `node tests/run.js` → **20 passed** (parse-policy 7 + opendate 13)
+- 스크립트: `tools/scrape-policy.js`(통합표) · `tools/scrape-hmpgid.js`(이름↔ID) ·
+  `tools/build-seed.js`(시드) · `tools/make-icons.js`
+
+### 💡 Supabase·폰 없이 UI 를 눈으로 보는 법 (2026-08-06)
+`scratch/preview.js` 가 시드 데이터를 물린 `preview.html` 을 만들고 Edge+CDP 로 렌더해
+홈·1·2·3단 스크린샷을 떨군다 (`scratch/preview-toast.js` 는 빼기→되돌리기 경로).
+**PNG 를 Read 도구로 열어 눈으로 볼 것** — 이걸로 `되돌리기` 버튼 글자가 두 줄로 쪼개지는
+버그를 잡았다. 텍스트 검증·문법 검사로는 안 잡히는 종류다.
+⚠️ `scratch/` 는 gitignore 라 리포에 없다. 폰 없이 확인할 유일한 수단이니 지우지 말 것.
 
 ### 계획 수립 중 사용자가 정한 것 (2026-08-04)
 - Supabase는 **Hyuyangnim 전용 새 프로젝트**를 만든다 (Our_Budget 재사용 안 함)
