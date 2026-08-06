@@ -1,6 +1,39 @@
 -- Hyuyangnim 스키마. Supabase 대시보드 SQL Editor 에 그대로 붙여넣는다.
 -- 출처: 숲나들e 휴양림별 예약정책안내 (2026-08-04 실측, 2026-08-05 재확인)
 -- RLS 는 전부 열어둔다 — 로그인이 없고 개인정보가 없다(즐겨찾기 목록이 전부). Our_Budget 과 동일.
+--
+-- ⚠️ 이 스키마는 **Our_Budget 과 같은 Supabase 프로젝트**에 들어간다 (2026-08-06 결정).
+--    무료 플랜 한도가 "본인이 Owner/Admin 인 모든 조직 합산 활성 프로젝트 2개" 라
+--    새 조직을 만들어도 전용 프로젝트를 못 만든다. 그래서 가계부 프로젝트를 공유한다.
+--    가계부 테이블(members·transactions·category_limits·master_data·app_settings·tax_map)과
+--    이름이 하나도 겹치지 않는 것을 확인했다(2026-08-06).
+--
+-- ⚠️ 아래 가드를 지우지 말 것. `create table if not exists` 는 같은 이름의 **남의 테이블**이
+--    있으면 조용히 건너뛰고, 그 뒤 seed.sql 이 남의 테이블에 insert/delete 를 한다.
+--    한 DB 를 두 앱이 쓰는 이상 이 사고를 코드로 막아야 한다.
+do $$
+begin
+  if to_regclass('public.forests') is not null and not exists (
+       select 1 from information_schema.columns
+       where table_schema='public' and table_name='forests' and column_name='hmpg_id') then
+    raise exception '중단: public.forests 가 이미 있는데 휴양림 테이블이 아니다. 덮어쓰지 않는다.';
+  end if;
+  if to_regclass('public.rules') is not null and not exists (
+       select 1 from information_schema.columns
+       where table_schema='public' and table_name='rules' and column_name='source_url') then
+    raise exception '중단: public.rules 가 이미 있는데 휴양림 테이블이 아니다. 덮어쓰지 않는다.';
+  end if;
+  if to_regclass('public.favorites') is not null and not exists (
+       select 1 from information_schema.columns
+       where table_schema='public' and table_name='favorites' and column_name='forest_id') then
+    raise exception '중단: public.favorites 가 이미 있는데 휴양림 테이블이 아니다. 덮어쓰지 않는다.';
+  end if;
+  if to_regclass('public.policy_snapshots') is not null and not exists (
+       select 1 from information_schema.columns
+       where table_schema='public' and table_name='policy_snapshots' and column_name='body_hash') then
+    raise exception '중단: public.policy_snapshots 가 이미 있는데 휴양림 테이블이 아니다.';
+  end if;
+end $$;
 
 create table if not exists forests (
   id       serial primary key,

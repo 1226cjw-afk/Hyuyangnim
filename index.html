@@ -143,11 +143,13 @@ function formatOpen(d) {
 }
 // ── OPENDATE:END ──
 
-// ⚠️ Supabase 연결정보. anon key 는 공개 키다(RLS 를 열어두었다 — Our_Budget 과 동일).
+// ⚠️ Supabase 연결정보. **Our_Budget 과 같은 프로젝트를 공유한다** (2026-08-06).
+//    무료 플랜이 "Owner/Admin 인 모든 조직 합산 활성 프로젝트 2개" 라 전용 프로젝트를 못 만들었다.
+//    → 그래서 이 키는 가계부 앱의 것과 같다. 한쪽에서 키를 바꾸면 다른 쪽도 같이 고쳐야 한다.
+//    anon(publishable) key 는 공개 키다 — Our_Budget public 리포에 이미 공개돼 있고 RLS 를 열어두었다.
 //    service_role key 는 절대 여기 넣지 않는다.
-//    아직 프로젝트를 안 만들었으면 이 두 줄만 바꾸면 앱이 살아난다.
-const SUPABASE_URL  = "<URL>";
-const SUPABASE_ANON = "<ANON>";
+const SUPABASE_URL  = "https://hqyvkyflakhuvethrstw.supabase.co";
+const SUPABASE_ANON = "sb_publishable_phZGH7odPTBoB4z8FQF_4A_mO2ltQ6J";
 const CONFIGURED = /^https:\/\//.test(SUPABASE_URL);
 
 let sb = null;

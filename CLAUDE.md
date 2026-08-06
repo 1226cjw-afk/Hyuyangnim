@@ -18,19 +18,25 @@
   (사용자: "알림을 따로 만들지 말고 웹페이지 접속하면 볼 수 있게만"). 서비스워커·푸시 구독·
   발송 크론·VAPID·`.ics` 전부 폐기. 자세한 경위는 `BRAINSTORM.md` Q2
 
-### 🚧 지금 막혀 있는 것 — **사용자만 할 수 있다** (2026-08-06)
+### ⚠️ Supabase 는 **Our_Budget 프로젝트를 공유한다** (2026-08-06 결정 — 되돌리지 말 것)
 
-앱 코드는 다 됐고 **Supabase 프로젝트가 없어서 아무것도 못 읽는다.** 필요한 것:
+계획서·아래 §"계획 수립 중 사용자가 정한 것"의 **"Hyuyangnim 전용 새 프로젝트를 만든다"가
+실행 불가로 뒤집혔다.** 무료 플랜 한도가 조직당이 아니라 **"본인이 Owner/Admin 인 모든 조직
+합산 활성 프로젝트 2개"** 라, 새 조직을 만들어도 우회가 안 된다 (2026-08-06 확인).
 
-1. supabase.com → New project (이름 `Hyuyangnim`, 리전 Northeast Asia (Seoul))
-2. Project Settings → API 의 **Project URL** + **anon public key**
-   → `index.html` 의 `SUPABASE_URL`·`SUPABASE_ANON` **두 줄**만 바꾸면 앱이 살아난다
-   ⚠️ **service_role key 는 받지도 쓰지도 않는다.** anon key 는 공개 키라 커밋해도 된다(RLS 개방)
-3. SQL Editor 에 `schema.sql` 실행 → 이어서 `data/seed.sql` 실행
-   (forests 185 · rules 185 중 active 4 · favorites 4)
+- 프로젝트: `https://hqyvkyflakhuvethrstw.supabase.co` (= `Our_Budget` 과 동일)
+- 가계부 테이블(`members`·`transactions`·`category_limits`·`master_data`·`app_settings`·`tax_map`)과
+  휴양림 테이블(`forests`·`rules`·`favorites`·`policy_snapshots`)은 **이름이 하나도 안 겹친다**(실측)
+- ⚠️ `schema.sql` 맨 위 가드를 지우지 말 것 — `create table if not exists` 는 같은 이름의 **남의
+  테이블**이 있으면 조용히 건너뛰고, 그 뒤 `seed.sql` 이 남의 테이블에 `delete`/`insert` 를 한다
+- ⚠️ anon key 가 두 리포(둘 다 public)에 들어간다. 한쪽에서 키를 갈면 **다른 쪽도 같이** 고칠 것
+- ⚠️ Our_Budget 프로젝트를 지우면 휴양림 데이터도 같이 날아간다
 
-그전까지 화면엔 `지금은 열 수 없어요 / 연결 준비 중입니다` 가 뜬다 — `CONFIGURED` 가드다.
-흰 화면을 만들지 않기 위한 것이니 지우지 말 것.
+### 🚧 남은 사람 작업 (사용자만 할 수 있다)
+
+1. Supabase 대시보드 → `Our_Budget` 프로젝트 → SQL Editor 에 `schema.sql` 실행
+2. 이어서 `data/seed.sql` 실행 → forests 185 · rules 185(active 4) · favorites 4
+3. 부모님 폰 2대에 홈 화면 아이콘 추가 (계획서 Task 10)
 
 ### 완료 / 남은 일
 | Task | 상태 |
@@ -57,7 +63,9 @@
 ⚠️ `scratch/` 는 gitignore 라 리포에 없다. 폰 없이 확인할 유일한 수단이니 지우지 말 것.
 
 ### 계획 수립 중 사용자가 정한 것 (2026-08-04)
-- Supabase는 **Hyuyangnim 전용 새 프로젝트**를 만든다 (Our_Budget 재사용 안 함)
+- ~~Supabase는 **Hyuyangnim 전용 새 프로젝트**를 만든다 (Our_Budget 재사용 안 함)~~
+  → ⚠️ **2026-08-06 뒤집힘.** 무료 플랜 한도(모든 조직 합산 2개) 때문에 만들 수 없었다.
+    Our_Budget 프로젝트를 공유한다 — 위 ⚠️ 절 참조
 - 휴양림 목록 원천은 **숲나들e 크롤링 우선** (data.go.kr 표준데이터는 이번 범위 밖 — 아래 §4)
 - GitHub 리포 + Cloudflare 자동배포를 **구현 초반에 먼저** 붙인다 (계획서 Task 1) → ✅ 됐다
 
