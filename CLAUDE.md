@@ -6,7 +6,26 @@
 
 ## 현황 (2026-08-06) — 구현 진행 중 (계획서 Task 8/10 완료, **Supabase 대기 중**)
 
-**배포 URL: https://hyuyangnim.1226cjw.workers.dev** (Cloudflare Workers, `main` 푸시 시 자동배포)
+**배포 URL: https://hyuyangnim.1226cjw.workers.dev** (Cloudflare Workers)
+
+⚠️ **자동배포는 되고 있지 않다 — 2026-08-06 실측.** 계획서 Task 1 이후 "`main` 푸시 시 자동배포"로
+기록돼 있었지만 **검증된 적이 없었다.** Task 2·3 커밋이 `index.html` 을 건드리지 않아서
+아무도 눈치채지 못했고, 실제로 바뀐 첫 커밋에서 드러났다.
+
+- 배포된 실물은 **첫 커밋(`1af8f2e`)의 index.html** 그대로였다 (882바이트 → 개행 정규화로 842)
+- GitHub 쪽에 Cloudflare 의 check-run·deployment 가 **0건**
+- 🔑 **동작 중인 `Our_Budget` 리포에는 `cloudflare/workers-autoconfig` 브랜치가 있는데
+  Hyuyangnim 에는 없다.** 이 브랜치가 GitHub 연동의 증거다 (Our_Budget CLAUDE.md 에 기록돼 있다)
+  → 첫 배포는 일회성 업로드였고 **Git 연동이 맺어진 적이 없다**
+
+**고치는 법(사용자):** dash.cloudflare.com → Workers & Pages → `hyuyangnim` →
+Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜치 `main`,
+빌드 명령·출력 디렉터리 **둘 다 비움** (Our_Budget 과 동일 설정).
+**성공 확인:** `gh api repos/1226cjw-afk/Hyuyangnim/branches --jq '.[].name'` 에
+`cloudflare/workers-autoconfig` 가 나타난다.
+
+⚠️ 배포 확인은 **반드시 실물을 받아서** 할 것 — 푸시 성공은 배포 성공이 아니다:
+`node scratch/check-live.js` (렌더까지) 또는 `fetch` 로 바이트 수·마커 문자열 확인.
 **GitHub: https://github.com/1226cjw-afk/Hyuyangnim** (public)
 
 - **구현 계획서: `docs/superpowers/plans/2026-08-04-hyuyangnim-implementation.md`** ← 새 세션은 이것부터
