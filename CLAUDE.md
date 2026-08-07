@@ -4,28 +4,49 @@
 국내 자연휴양림(국립 + 지자체 운영)의 **예약 오픈 일정**을 한곳에 모아 보여주는 모바일 웹.
 도별/지역별로 휴양림을 찾고, 즐겨찾기한 곳의 다음 오픈일과 접수 링크를 놓치지 않게 한다.
 
-## 현황 (2026-08-07) — 계획서 **Task 9/10 완료**. 남은 건 배포 연결과 폰 등록뿐
+## 현황 (2026-08-07) — 계획서 **Task 9/10 완료**. 배포 실물이 살아 있다. 남은 건 폰 등록
 
 **배포 URL: https://hyuyangnim.1226cjw.workers.dev** (Cloudflare Workers)
 
-⚠️ **자동배포는 되고 있지 않다 — 2026-08-06 실측, 2026-08-07 재확인(그대로).** 계획서 Task 1 이후 "`main` 푸시 시 자동배포"로
-기록돼 있었지만 **검증된 적이 없었다.** Task 2·3 커밋이 `index.html` 을 건드리지 않아서
-아무도 눈치채지 못했고, 실제로 바뀐 첫 커밋에서 드러났다.
+### ⚠️ 배포는 **손으로** 한다 — 자동배포는 여전히 없다 (2026-08-07)
 
-- 배포된 실물은 **첫 커밋(`1af8f2e`)의 index.html** 그대로였다 (882바이트 → 개행 정규화로 842)
-- GitHub 쪽에 Cloudflare 의 check-run·deployment 가 **0건**
-- 🔑 **동작 중인 `Our_Budget` 리포에는 `cloudflare/workers-autoconfig` 브랜치가 있는데
-  Hyuyangnim 에는 없다.** 이 브랜치가 GitHub 연동의 증거다 (Our_Budget CLAUDE.md 에 기록돼 있다)
-  → 첫 배포는 일회성 업로드였고 **Git 연동이 맺어진 적이 없다**
+2026-08-05 첫 배포 이후 8/7 까지 **푸시가 한 번도 반영되지 않았다.** 배포된 실물은 첫 커밋의
+index.html(842자) 그대로였고, GitHub 쪽 Cloudflare check-run·deployment 는 0건이었다.
+동작 중인 `Our_Budget` 에는 있는 `cloudflare/workers-autoconfig` 브랜치가 여기엔 없다
+= **Git 연동이 맺어진 적이 없다.** 2026-08-07 에 wrangler CLI 로 실물을 밀어넣어 해소했지만,
+**연동 자체는 아직 없으므로 `git push` 만으로는 배포되지 않는다.**
 
-**고치는 법(사용자):** dash.cloudflare.com → Workers & Pages → `hyuyangnim` →
-Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜치 `main`,
-빌드 명령·출력 디렉터리 **둘 다 비움** (Our_Budget 과 동일 설정).
+```bash
+node tools/deploy.js     # 코드를 고쳤으면 이걸 돌려야 부모님 폰에 반영된다
+```
+앱 4개를 `.deploy/`(gitignore)에 담아 올리고, **실물을 다시 받아 글자 수까지 대조**한다.
+스크립트가 하는 일과 그 이유는 아래 함정들이다 — 손으로 돌릴 땐 그대로 지킬 것.
+
+- ⚠️ **리포 루트를 `--assets=.` 로 올리지 말 것.** 2026-08-05 첫 배포가 그렇게 돼 있어서
+  `https://hyuyangnim.1226cjw.workers.dev/CLAUDE.md` 가 그대로 열렸다(2026-08-07 실측).
+  올릴 것은 `index.html`·`manifest.json`·`icon-192.png`·`icon-512.png` **4개뿐** →
+  다른 폴더에 복사해서 그 폴더를 `--assets` 로 준다
+- ⚠️ **`.assetsignore` 로 거르려던 시도는 실패했다 (wrangler 4.119.0 에서 무시된다).**
+  격리 테스트: 파일 5개 → 필터 없이 `Read 5 files`, `.assetsignore`(`*.md`·`sub/`) 추가 후
+  `Read 6 files` = 하나도 안 걸러지고 자기 자신만 늘었다. CLI 플래그·설정파일 둘 다 같았다.
+  **다시 시도하지 말 것.** 폴더를 나누는 게 유일하게 검증된 방법이다
+- ⚠️ `npx wrangler` 는 **버전을 박을 것**(`@4.119.0`). 무버전은 방금 나온 4.120.0 을 받으려다
+  tarball 404 로 죽는다(2026-08-07 실제 발생)
+- `npx wrangler login` 은 브라우저 OAuth → **사용자만 할 수 있다.** 세션에서는
+  `! npx wrangler@4.119.0 login` 으로 사용자에게 부탁할 것
+
+**나중에 자동배포를 붙이려면(사용자):** dash.cloudflare.com → Workers & Pages → `hyuyangnim` →
+Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜치 `main`.
 **성공 확인:** `gh api repos/1226cjw-afk/Hyuyangnim/branches --jq '.[].name'` 에
 `cloudflare/workers-autoconfig` 가 나타난다.
+⚠️ 단 **빌드 출력 디렉터리를 비우면 리포 전체가 다시 공개된다**(위 CLAUDE.md 사건).
+붙이기 전에 앱 4개를 `public/` 같은 폴더로 옮기고 그걸 출력 디렉터리로 지정할 것.
 
-⚠️ 배포 확인은 **반드시 실물을 받아서** 할 것 — 푸시 성공은 배포 성공이 아니다:
-`node scratch/check-live.js` (렌더까지) 또는 `fetch` 로 바이트 수·마커 문자열 확인.
+⚠️ 배포 확인은 **반드시 실물을 받아서** 할 것 — 푸시 성공도 `Deployed` 로그도 배포 성공이 아니다:
+`node scratch/check-live.js` (렌더까지) 또는 `fetch` 로 글자 수·마커 확인.
+⚠️ 방금 배포한 직후엔 **엣지 캐시가 옛 응답을 잠깐 더 준다**(2026-08-07 실측, `cf-cache-status HIT`).
+바로 옛 바이트가 보인다고 배포 실패로 단정하지 말 것 — `/index.html` 을 직접 받아보고,
+`npx wrangler@4.119.0 deployments list --name hyuyangnim` 으로 버전이 100% 인지 본다.
 **GitHub: https://github.com/1226cjw-afk/Hyuyangnim** (public)
 
 - **구현 계획서: `docs/superpowers/plans/2026-08-04-hyuyangnim-implementation.md`** ← 새 세션은 이것부터
@@ -53,8 +74,9 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
 
 ### 🚧 남은 사람 작업 (사용자만 할 수 있다)
 
-1. **Cloudflare 배포 연결** — 위 "고치는 법(사용자)". 이게 유일한 블로커다
-2. 부모님 폰 2대에 홈 화면 아이콘 추가 (계획서 Task 10)
+1. 부모님 폰 2대에 홈 화면 아이콘 추가 (계획서 Task 10) — **지금 바로 가능하다.**
+   `https://hyuyangnim.1226cjw.workers.dev` 에 진짜 앱이 올라가 있다(2026-08-07 렌더 확인)
+2. (선택) Cloudflare Connect to Git — 안 해도 되지만, 안 하면 배포를 매번 손으로 해야 한다
 
 (Supabase 투입은 2026-08-06 에 끝났다 — forests 185 · rules 185(active 정확히 4) · favorites 4.
  `node scratch/check-db.js` 로 언제든 재확인)
@@ -68,13 +90,14 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
 | 4 `hmpgId` 매핑 (`data/hmpgid-map.json` 186/186) | ✅ 완료 |
 | 5 Supabase 스키마 + 시드 | ✅ 완료 — **투입까지 끝** (forests 185 · rules 185(active 4) · favorites 4) |
 | 6 다음 오픈일 계산 (TDD) | ✅ 완료 — 테스트 13개 |
-| 7 홈 화면 · 8 3단 드릴다운 | ✅ 코드 완료 — **실기기 확인만 남음** |
+| 7 홈 화면 · 8 3단 드릴다운 | ✅ 완료 — 배포 실물에서 카드 4장·딥링크 4개·드릴다운 확인 |
 | 9 주 1회 정책 감시 `check.js` | ✅ 완료 — 오탐 0 · 주입 테스트 통과 · 작업 스케줄러 등록 |
 | 10 부모님 폰 등록 | ⬜ **다음** — 배포 연결을 고친 뒤 |
 
 - 테스트: `node tests/run.js` → **20 passed** (parse-policy 7 + opendate 13)
 - 스크립트: `tools/scrape-policy.js`(통합표) · `tools/scrape-hmpgid.js`(이름↔ID) ·
-  `tools/build-seed.js`(시드) · `tools/make-icons.js` · `tools/check.js`(주 1회 감시)
+  `tools/build-seed.js`(시드) · `tools/make-icons.js` · `tools/check.js`(주 1회 감시) ·
+  `tools/deploy.js`(배포 — 자동배포가 없으니 손으로 돌린다)
 
 ### 🕗 정책 감시는 이 PC 의 작업 스케줄러가 돌린다 (2026-08-07 등록)
 

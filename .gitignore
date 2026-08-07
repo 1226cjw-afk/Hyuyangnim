@@ -6,3 +6,5 @@
 PROGRESS.md
 scratch/
 tools/edgeprofile/
+.deploy/
+.wrangler/
