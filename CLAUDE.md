@@ -4,11 +4,11 @@
 국내 자연휴양림(국립 + 지자체 운영)의 **예약 오픈 일정**을 한곳에 모아 보여주는 모바일 웹.
 도별/지역별로 휴양림을 찾고, 즐겨찾기한 곳의 다음 오픈일과 접수 링크를 놓치지 않게 한다.
 
-## 현황 (2026-08-06) — 구현 진행 중 (계획서 Task 8/10 완료, **Supabase 대기 중**)
+## 현황 (2026-08-07) — 계획서 **Task 9/10 완료**. 남은 건 배포 연결과 폰 등록뿐
 
 **배포 URL: https://hyuyangnim.1226cjw.workers.dev** (Cloudflare Workers)
 
-⚠️ **자동배포는 되고 있지 않다 — 2026-08-06 실측.** 계획서 Task 1 이후 "`main` 푸시 시 자동배포"로
+⚠️ **자동배포는 되고 있지 않다 — 2026-08-06 실측, 2026-08-07 재확인(그대로).** 계획서 Task 1 이후 "`main` 푸시 시 자동배포"로
 기록돼 있었지만 **검증된 적이 없었다.** Task 2·3 커밋이 `index.html` 을 건드리지 않아서
 아무도 눈치채지 못했고, 실제로 바뀐 첫 커밋에서 드러났다.
 
@@ -53,9 +53,11 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
 
 ### 🚧 남은 사람 작업 (사용자만 할 수 있다)
 
-1. Supabase 대시보드 → `Our_Budget` 프로젝트 → SQL Editor 에 `schema.sql` 실행
-2. 이어서 `data/seed.sql` 실행 → forests 185 · rules 185(active 4) · favorites 4
-3. 부모님 폰 2대에 홈 화면 아이콘 추가 (계획서 Task 10)
+1. **Cloudflare 배포 연결** — 위 "고치는 법(사용자)". 이게 유일한 블로커다
+2. 부모님 폰 2대에 홈 화면 아이콘 추가 (계획서 Task 10)
+
+(Supabase 투입은 2026-08-06 에 끝났다 — forests 185 · rules 185(active 정확히 4) · favorites 4.
+ `node scratch/check-db.js` 로 언제든 재확인)
 
 ### 완료 / 남은 일
 | Task | 상태 |
@@ -64,15 +66,26 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
 | 2 통합표 스크래퍼 + 파서 (`data/policy-table.json` 185행) | ✅ 완료 |
 | 3 축령산 충돌 판정 (`data/rules-verified.json`) | ✅ 완료 — 사용자 판정 `매월 1일` |
 | 4 `hmpgId` 매핑 (`data/hmpgid-map.json` 186/186) | ✅ 완료 |
-| 5 Supabase 스키마 + 시드 | 🟡 `schema.sql`·`data/seed.sql` 생성 완료 — **투입만 남음(위 🚧)** |
+| 5 Supabase 스키마 + 시드 | ✅ 완료 — **투입까지 끝** (forests 185 · rules 185(active 4) · favorites 4) |
 | 6 다음 오픈일 계산 (TDD) | ✅ 완료 — 테스트 13개 |
 | 7 홈 화면 · 8 3단 드릴다운 | ✅ 코드 완료 — **실기기 확인만 남음** |
-| 9 주 1회 정책 감시 `check.js` | ⬜ **다음** — Supabase 접속이 있어야 검증까지 된다 |
-| 10 부모님 폰 등록 | ⬜ |
+| 9 주 1회 정책 감시 `check.js` | ✅ 완료 — 오탐 0 · 주입 테스트 통과 · 작업 스케줄러 등록 |
+| 10 부모님 폰 등록 | ⬜ **다음** — 배포 연결을 고친 뒤 |
 
 - 테스트: `node tests/run.js` → **20 passed** (parse-policy 7 + opendate 13)
 - 스크립트: `tools/scrape-policy.js`(통합표) · `tools/scrape-hmpgid.js`(이름↔ID) ·
-  `tools/build-seed.js`(시드) · `tools/make-icons.js`
+  `tools/build-seed.js`(시드) · `tools/make-icons.js` · `tools/check.js`(주 1회 감시)
+
+### 🕗 정책 감시는 이 PC 의 작업 스케줄러가 돌린다 (2026-08-07 등록)
+
+`Hyuyangnim 정책감시` — 매주 **월 08:00**, `node tools/check.js`.
+확인: `Get-ScheduledTaskInfo -TaskName "Hyuyangnim 정책감시"` (`LastTaskResult` 0=변경없음 · 2=검토필요)
+- ⚠️ Edge+CDP 를 띄우므로 **로그온 상태에서만** 돈다. 월요일에 PC 가 꺼져 있었으면 켠 뒤 따라잡는다
+  (`StartWhenAvailable`). 클라우드가 아니라 이 PC 에 묶여 있다는 뜻이다
+- 변경이 잡히면 그 휴양림은 즉시 `rules.active=false` → 화면에 `오픈일 확인 중`.
+  **사람이 `data/rules-verified.json` 을 고쳐 `build-seed` 를 다시 돌릴 때까지 날짜는 안 뜬다** — 의도된 동작
+- 오탐 방지 가드: 표 첫 셀이 `구분` 이 아니면 비교 전에 중단(exit 1). 열이 밀리면
+  185곳이 통째로 `변경` 으로 잡혀 전부 `오픈일 확인 중` 이 된다
 
 ### 💡 Supabase·폰 없이 UI 를 눈으로 보는 법 (2026-08-06)
 `scratch/preview.js` 가 시드 데이터를 물린 `preview.html` 을 만들고 Edge+CDP 로 렌더해
