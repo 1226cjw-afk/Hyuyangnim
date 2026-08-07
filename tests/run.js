@@ -13,7 +13,7 @@ global.eq = (actual, expected, msg) => {
 };
 
 for (const f of process.argv.slice(2).length ? process.argv.slice(2)
-    : ['parse-policy.test.js', 'opendate.test.js']) {
+    : ['parse-policy.test.js', 'opendate.test.js', 'josa.test.js']) {
   const p = path.join(__dirname, f);
   if (!require('fs').existsSync(p)) { console.log('(skip ' + f + ' — 아직 없음)'); continue; }
   console.log('\n' + f);

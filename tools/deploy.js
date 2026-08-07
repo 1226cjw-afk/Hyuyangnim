@@ -7,6 +7,7 @@
 //    .assetsignore 로 거르는 방법은 wrangler 4.119.0 에서 동작하지 않는다 — 폴더를 나누는 게 답이다.
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
@@ -23,14 +24,26 @@ console.log('스테이징 ' + FILES.length + '개 → ' + STAGE);
 execSync(`npx ${WRANGLER} deploy --assets="${STAGE}" --name=hyuyangnim --compatibility-date=2026-08-07`,
   { stdio: 'inherit' });
 
-// ⚠️ "Deployed" 로그는 배포 성공의 증거가 아니다. 실물을 받아서 확인한다.
-// (배포 직후 엣지 캐시가 옛 응답을 잠깐 더 주므로 /index.html 을 직접 받는다)
+// ⚠️ "Deployed" 로그는 배포 성공의 증거가 아니다. 실물을 받아 **로컬과 해시까지 대조**한다.
+// ⚠️ "supabase 가 들어있고 1만 자 넘으면 OK" 같은 헐거운 검사를 쓰지 말 것 —
+//    2026-08-07 에 그 검사가 실물 14877자 ≠ 로컬 15043자 인 배포를 '✅' 로 통과시켰다.
+// 배포 직후엔 엣지 캐시가 옛 응답을 잠깐 더 주므로 같아질 때까지 몇 번 다시 받는다.
+const sha = b => crypto.createHash('sha256').update(b).digest('hex');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 (async () => {
-  const t = await (await fetch('https://hyuyangnim.1226cjw.workers.dev/index.html?z=' + Date.now())).text();
-  const local = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const ok = t.includes('supabase') && t.length > 10000;
-  console.log('\n실물 ' + t.length + '자 · 로컬 ' + local.length + '자 · supabase 마커 ' + (t.includes('supabase') ? 'O' : 'X'));
-  console.log(ok ? '✅ 배포 확인' : '⚠️ 실물이 이상하다 — deployments list 로 버전을 확인할 것');
-  console.log('렌더까지 보려면: node scratch/check-live.js');
-  if (!ok) process.exit(1);
+  const local = fs.readFileSync(path.join(ROOT, 'index.html'));
+  for (let i = 1; i <= 10; i++) {
+    const live = Buffer.from(await (await fetch(
+      'https://hyuyangnim.1226cjw.workers.dev/index.html?z=' + Date.now())).arrayBuffer());
+    if (sha(live) === sha(local)) {
+      console.log('\n✅ 배포 확인 — 실물이 로컬 index.html 과 바이트 단위로 같다 (' + local.length + 'B)');
+      console.log('렌더까지 보려면: node scratch/check-live.js');
+      return;
+    }
+    console.log('  (' + i + '/10) 실물 ' + live.length + 'B ≠ 로컬 ' + local.length + 'B — 엣지 캐시일 수 있다, 3초 뒤 다시');
+    await sleep(3000);
+  }
+  console.error('\n❌ 실물이 로컬과 끝내 달랐다. npx wrangler@4.119.0 deployments list --name hyuyangnim 로 버전 확인');
+  process.exit(1);
 })();
