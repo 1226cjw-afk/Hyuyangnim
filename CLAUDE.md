@@ -112,6 +112,11 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
   **사람이 `data/rules-verified.json` 을 고쳐 `build-seed` 를 다시 돌릴 때까지 날짜는 안 뜬다** — 의도된 동작
 - 오탐 방지 가드: 표 첫 셀이 `구분` 이 아니면 비교 전에 중단(exit 1). 열이 밀리면
   185곳이 통째로 `변경` 으로 잡혀 전부 `오픈일 확인 중` 이 된다
+- ⚠️ **월요일 이후 `data/policy-table.json` 이 미커밋으로 뜨는 건 정상이다.** 변경이 없어도(exit 0)
+  스냅샷을 무조건 재작성하고, `rowKey` 비교에서 뺀 칸(`priority`·운영현황)까지 갱신되기 때문.
+  `git diff` 가 `scraped_at` + 제외 칸만 바꿨으면 그냥 커밋하면 된다 (2026-08-24 실측)
+- ⚠️ `scraped_at` 은 **UTC 날짜**(`toISOString`)라 오전 9시 이전 실행이면 하루 전으로 적힌다
+  (08-24 08:53 KST 실행 → `"2026-08-23"`). 실행일은 `Get-ScheduledTaskInfo` 의 `LastRunTime` 을 볼 것
 
 ### 💡 Supabase·폰 없이 UI 를 눈으로 보는 법 (2026-08-06)
 `scratch/preview.js` 가 시드 데이터를 물린 `preview.html` 을 만들고 Edge+CDP 로 렌더해
