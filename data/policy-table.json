@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-08-07",
+  "scraped_at": "2026-08-23",
   "url": "https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002",
   "rows": [
     {
@@ -936,7 +936,7 @@
       "weekly": "O\n09시 오픈",
       "monthly": "",
       "lottery": "",
-      "priority": "바우처"
+      "priority": "바우처, 기타"
     },
     {
       "gubun": "공립",
@@ -1518,8 +1518,8 @@
       "room": "O",
       "camp": "O",
       "wait": "O",
-      "weekly": "",
-      "monthly": "매월 15일 09시 오픈",
+      "weekly": "O ( 4주 )\n월요일 09시 오픈",
+      "monthly": "",
       "lottery": "",
       "priority": "바우처, 지역주민"
     },
