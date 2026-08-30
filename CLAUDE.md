@@ -97,7 +97,7 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
 | 9 주 1회 정책 감시 `check.js` | ✅ 완료 — 오탐 0 · 주입 테스트 통과 · 작업 스케줄러 등록 |
 | 10 부모님 폰 등록 | ⬜ **다음** — 배포 연결을 고친 뒤 |
 
-- 테스트: `node tests/run.js` → **20 passed** (parse-policy 7 + opendate 13)
+- 테스트: `node tests/run.js` → **25 passed** (parse-policy 7 + opendate 13 + josa 5)
 - 스크립트: `tools/scrape-policy.js`(통합표) · `tools/scrape-hmpgid.js`(이름↔ID) ·
   `tools/build-seed.js`(시드) · `tools/make-icons.js` · `tools/check.js`(주 1회 감시) ·
   `tools/deploy.js`(배포 — 자동배포가 없으니 손으로 돌린다)
