@@ -110,6 +110,13 @@ Settings → Builds → **Connect to Git** → `1226cjw-afk/Hyuyangnim`, 브랜�
   (`StartWhenAvailable`). 클라우드가 아니라 이 PC 에 묶여 있다는 뜻이다
 - 변경이 잡히면 그 휴양림은 즉시 `rules.active=false` → 화면에 `오픈일 확인 중`.
   **사람이 `data/rules-verified.json` 을 고쳐 `build-seed` 를 다시 돌릴 때까지 날짜는 안 뜬다** — 의도된 동작
+- ⚠️ **그때 `seed.sql` 을 통째로 적용하지 말 것 — `check.js` 의 "검토 필요" 표시가 지워진다** (2026-08-31 실측).
+  `conflict` 칸을 쓰는 주체가 둘이다: 배치(`build-seed` ← `rules-verified.json`)와 런타임(`check.js`).
+  `seed.sql` 은 `delete from rules;` 후 재삽입하면서 `conflict` 를 `rules-verified.json` 기준으로만 채우므로,
+  `check.js` 가 남긴 `통합표 변경 감지 … 사람 검토 필요` 가 `null` 로 덮인다 = 검토 대기 중이던 휴양림이
+  조용히 표시를 잃는다. **한두 행만 바뀐 경우엔 그 행만 고칠 것** (`active`·`conflict` 는 건드리지 않는다):
+  `update rules set freq='weekly', day_of_month=null, weekday=1 where forest_id=(select id from forests where name='와룡자연휴양림');`
+  실제로 와룡이 이 상태였다 — DB `conflict='통합표 변경 감지 2026-08-14'` ↔ `seed.sql` 은 `null`
 - 오탐 방지 가드: 표 첫 셀이 `구분` 이 아니면 비교 전에 중단(exit 1). 열이 밀리면
   185곳이 통째로 `변경` 으로 잡혀 전부 `오픈일 확인 중` 이 된다
 - ⚠️ **월요일 이후 `data/policy-table.json` 이 미커밋으로 뜨는 건 정상이다.** 변경이 없어도(exit 0)
