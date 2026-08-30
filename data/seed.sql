@@ -1,5 +1,5 @@
 -- 자동 생성물. 직접 고치지 말고 tools/build-seed.js 를 고칠 것.
--- 생성일 2026-08-06
+-- 생성일 2026-08-30
 -- 출처 https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002
 
 insert into forests (name, gubun, region, sigungu, hmpg_id) values ('유명산 자연휴양림', '국립', '서울인천경기', '가평군', '0101') on conflict (name) do update set gubun=excluded.gubun, region=excluded.region, sigungu=excluded.sigungu, hmpg_id=coalesce(excluded.hmpg_id, forests.hmpg_id);
@@ -539,7 +539,7 @@ insert into rules (forest_id, kind, freq, day_of_month, weekday, open_time, note
 select f.id, 'fcfs', 'weekly', null, 1, '09:00', null, 'https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002', '2026-08-05', null, false
 from forests f where f.name = '방화동자연휴양림';
 insert into rules (forest_id, kind, freq, day_of_month, weekday, open_time, note, source_url, verified_at, conflict, active)
-select f.id, 'fcfs', 'monthly', 15, null, '09:00', null, 'https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002', '2026-08-05', null, false
+select f.id, 'fcfs', 'weekly', null, 1, '09:00', null, 'https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002', '2026-08-05', null, false
 from forests f where f.name = '와룡자연휴양림';
 insert into rules (forest_id, kind, freq, day_of_month, weekday, open_time, note, source_url, verified_at, conflict, active)
 select f.id, 'fcfs', 'weekly', null, 3, '09:00', null, 'https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002', '2026-08-05', null, false
