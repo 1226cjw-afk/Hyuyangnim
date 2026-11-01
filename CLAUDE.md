@@ -382,3 +382,15 @@ https://www.foresttrip.go.kr/pot/rm/ug/selectRsrvtGdncView.do
 - 규칙·정책을 코드에 하드코딩할 땐 **출처 URL + 확인 날짜를 주석으로** 남길 것 (조례로 바뀜)
 - 되돌리면 안 되는 것엔 `⚠️` + 실측 날짜를 근거와 함께
 - 진척은 이 폴더의 `PROGRESS.md`에 기록 (git 미추적 — `.gitignore` 에 있다)
+
+## PC ↔ 폰(클라우드) 동기화
+
+PC 와 폰에서 번갈아 작업한다. **`main` 이 유일한 최신본**이다. `.claude/hooks/git-sync.js` 가 훅으로 돈다.
+
+- 세션 시작·프롬프트마다 `origin/main` 을 자동으로 받는다(로컬 변경을 덮어쓰지 않는다).
+- 완료한 작업: 확인 → 커밋 → `git push origin main`. ⚠️ 이 리포는 push 만으로 배포되지 않는다(Git 연동 없음). 앱 파일(`index.html` 등)을 고쳤으면 PC 에서 `node tools/deploy.js` 까지 해야 부모님 폰에 반영된다. 클라우드 세션엔 Cloudflare 인증이 없으므로 사용자에게 "PC 배포 필요"라고 알리고, PC 세션이 그런 커밋을 받으면 배포한다.
+- 미완성 작업: 응답을 끝낼 때 `node .claude/hooks/git-sync.js park "하던 일 / 다음 할 일"`. `wip-*` 브랜치에만 저장되고 `main` 은 그대로다. 새 파일은 이번 작업에 필요한 것만 뒤에 나열한다. ⚠️ public 리포이므로 메모·파일에 비밀값과 개인 데이터를 넣지 않는다.
+- 사용자가 기기를 옮긴다고 하면 대화에서 결정한 내용까지 메모에 담아 `park` 한다.
+- 이어받기: 세션 시작 때 미완성 작업이 안내되면 사용자에게 알린다. 이어서 하자고 하면 `resume <브랜치>`, 버리라고 하면 `drop <브랜치>`.
+- 새 브랜치·PR 을 만들지 않는다. force push 하지 않는다.
+- 클라우드 세션에는 `.env.local`·`.mcp.json`·Supabase MCP 가 없고 네트워크도 허용 목록만 통과한다. DB 작업과 실데이터 확인은 PC 에서 한다.
