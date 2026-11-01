@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-08-23",
+  "scraped_at": "2026-10-26",
   "url": "https://www.foresttrip.go.kr/pot/cc/bb/selectFripRsrvtPolcyView.do?hmpgId=FRIP&menuId=002002",
   "rows": [
     {
@@ -311,7 +311,7 @@
       "wait": "O",
       "weekly": "O\n09시 오픈",
       "monthly": "",
-      "lottery": "주말, 성수기, 다자녀, 실버",
+      "lottery": "주말, 성수기, 장애인, 다자녀, 실버",
       "priority": "바우처"
     },
     {
@@ -910,7 +910,7 @@
       "weekly": "",
       "monthly": "매월 4일 09시 오픈",
       "lottery": "",
-      "priority": "지역주민"
+      "priority": "바우처, 지역주민"
     },
     {
       "gubun": "공립",
@@ -923,7 +923,7 @@
       "weekly": "",
       "monthly": "매월 4일 09시 오픈",
       "lottery": "",
-      "priority": "지역주민"
+      "priority": "바우처, 지역주민"
     },
     {
       "gubun": "공립",
@@ -1404,7 +1404,7 @@
       "weekly": "O\n09시 오픈",
       "monthly": "",
       "lottery": "주말, 성수기, 지역주민",
-      "priority": "바우처, 지역주민"
+      "priority": "지역주민"
     },
     {
       "gubun": "공립",
